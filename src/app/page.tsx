@@ -10,11 +10,13 @@ export default function HomePage() {
 type FavoriteStop = {
   name: string
   id: string
+  direction?: string
 }
 
 const [favorites, setFavorites] = useState<FavoriteStop[]>([])
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [selectedStopId, setSelectedStopId] = useState("");
+  const [selectedStopDirection, setSelectedStopDirection] = useState("");
   type ArrivalItem = {
     routeId?: string
     routeName?: string
@@ -23,8 +25,10 @@ const [favorites, setFavorites] = useState<FavoriteStop[]>([])
     predictTime2?: string | number
     locationNo1?: string | number
     locationNo2?: string | number
+    direction?: string
+    nextStation?: string
   }
-  const [arrivals, setArrivals] = useState<ArrivalItem[]>([]);
+    const [arrivals, setArrivals] = useState<ArrivalItem[]>([]);
 
   useEffect(() => {
     const savedFavorites = localStorage.getItem("favorites");
@@ -126,12 +130,26 @@ setResults(groupedStops);
         const parsed = items.map((item) => ({
           routeName: item.getElementsByTagName("rtNm")[0]?.textContent || "",
           routeTypeName: item.getElementsByTagName("routeType")[0]?.textContent || "",
+        
           predictTime1: item.getElementsByTagName("arrmsg1")[0]?.textContent || "",
           predictTime2: item.getElementsByTagName("arrmsg2")[0]?.textContent || "",
-          locationNo1: "",
-          locationNo2: "",
-        }));
         
+          locationNo1: item.getElementsByTagName("arrmsg1")[0]?.textContent || "",
+          locationNo2: item.getElementsByTagName("arrmsg2")[0]?.textContent || "",
+        
+          // ⭐ 추가 (핵심)
+          direction: item.getElementsByTagName("adirection")[0]?.textContent || "",
+          nextStation: item.getElementsByTagName("nxtStn")[0]?.textContent || "",
+        }));     
+        // 방향 대표값 추출 (핵심)
+const directions = parsed
+.map((item) => item.direction)
+.filter((dir) => dir && dir.trim() !== "");
+
+const uniqueDirections = Array.from(new Set(directions));
+
+// 최대 2개만 표시
+setSelectedStopDirection(uniqueDirections.slice(0, 2).join(" / "));   
         setArrivals(parsed);
       } catch (err) {
         console.error("도착정보 에러", err);
@@ -145,7 +163,14 @@ setResults(groupedStops);
     const exists = favorites.some((favorite) => favorite.id === id)
     if (exists) return
   
-    setFavorites([...favorites, { name, id }])
+    setFavorites([
+      ...favorites,
+      {
+        name,
+        id,
+        direction: selectedStopDirection,
+      },
+    ])
   };
 
   const handleRemoveFavorite = (id: string) => {
@@ -298,9 +323,13 @@ setResults(groupedStops);
           className="flex items-center justify-between bg-zinc-800 px-3 py-2 rounded mb-1"
         >
           <div>
-            <div style={{ fontSize: "12px", color: "#aaa" }}>
-              정류장번호: {item.arsId}
-            </div>
+          <div style={{ fontSize: "12px", color: "#aaa" }}>
+  정류장번호: {item.arsId}
+</div>
+
+<div style={{ fontSize: "12px", color: "#666" }}>
+  ID: {item.stId}
+</div>
           </div>
 
           <button
@@ -355,6 +384,11 @@ setResults(groupedStops);
   <div style={{ fontSize: "12px", color: "#aaa" }}>
     정류장 번호: {item.id}
   </div>
+  {item.direction && (
+  <div className="text-xs text-yellow-300">
+    대표 방향: {item.direction}
+  </div>
+)}
 </div>
         </button>
 
@@ -371,6 +405,16 @@ setResults(groupedStops);
               {/* 도착정보 */}
       <div className="mt-4 bg-zinc-900 p-4 rounded-xl shadow-md">
         <h2 className="text-lg font-semibold mb-3">실시간 도착정보</h2>
+        {selectedStopId && (
+  <div className="text-sm text-gray-400 mb-3">
+    선택된 정류장 ID: {selectedStopId}
+  </div>
+)}
+{selectedStopDirection && (
+  <div className="text-sm text-yellow-300 mb-3">
+    대표 방향: {selectedStopDirection}
+  </div>
+)}
 
         {!selectedStopId ? (
           <div className="text-gray-400">정류장을 선택하면 도착정보가 표시됩니다.</div>
@@ -385,9 +429,9 @@ setResults(groupedStops);
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">
-                      {arrival.routeName ?? "노선 없음"}
-                    </div>
+                  <div className="font-medium text-white">
+                  {arrival.routeName ?? "노선 없음"} → {arrival.direction || "방향정보 없음"}
+</div>
                     <div className="text-sm text-gray-400">
                       {arrival.routeTypeName ?? ""}
                     </div>
@@ -419,3 +463,4 @@ setResults(groupedStops);
         </main>
   )
 }
+
