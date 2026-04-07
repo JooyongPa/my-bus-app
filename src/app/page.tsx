@@ -5,31 +5,57 @@ import { useEffect, useState } from "react";
 export default function HomePage() {
   const [stopName, setStopName] = useState("");
   const [results, setResults] = useState<
-  { stId: string; stNm: string; arsId: string }[]
->([]);
-type FavoriteStop = {
-  name: string
-  id: string
-  direction?: string
-}
+    { stId: string; stNm: string; arsId: string; direction?: string }[]
+  >([]);
 
-const [favorites, setFavorites] = useState<FavoriteStop[]>([])
+  type FavoriteStop = {
+    name: string;
+    id: string;
+    direction?: string;
+  };
+
+  const [favorites, setFavorites] = useState<FavoriteStop[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [selectedStopId, setSelectedStopId] = useState("");
   const [selectedStopDirection, setSelectedStopDirection] = useState("");
-  type ArrivalItem = {
-    routeId?: string
-    routeName?: string
-    routeTypeName?: string
-    predictTime1?: string | number
-    predictTime2?: string | number
-    locationNo1?: string | number
-    locationNo2?: string | number
-    direction?: string
-    nextStation?: string
-  }
-    const [arrivals, setArrivals] = useState<ArrivalItem[]>([]);
 
+  type ArrivalItem = {
+    routeId?: string;
+    routeName?: string;
+    routeTypeName?: string;
+    predictTime1?: string | number;
+    predictTime2?: string | number;
+    locationNo1?: string | number;
+    locationNo2?: string | number;
+    direction?: string;
+    nextStation?: string;
+  };
+
+  const [arrivals, setArrivals] = useState<ArrivalItem[]>([]);
+
+  function formatArrival(message?: string | number) {
+    const text = String(message ?? "").trim();
+
+    if (!text) return "-";
+
+    if (text.includes("곧도착") || text.includes("곧 도착")) {
+      return "곧 도착";
+    }
+
+    if (
+      text.includes("출발대기") ||
+      text.includes("차고지출발") ||
+      text.includes("차고지 출발")
+    ) {
+      return "차고지 출발";
+    }
+
+    return text
+      .replace(/분후/g, "분 후 ")
+      .replace(/\[([0-9]+)번째 전\]/g, "[$1정류장 전]")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
   useEffect(() => {
     const savedFavorites = localStorage.getItem("favorites");
     const savedRecentSearches = localStorage.getItem("recentSearches");
@@ -69,7 +95,7 @@ const [favorites, setFavorites] = useState<FavoriteStop[]>([])
         const xmlDoc = parser.parseFromString(xmlText, "text/xml");
 
         const itemList = xmlDoc.getElementsByTagName("itemList");
-        const parsedStops: { stId: string; stNm: string; arsId: string }[] = [];
+        const parsedStops: { stId: string; stNm: string; arsId: string; direction?: string }[] = [];
 
         for (let i = 0; i < itemList.length; i++) {
           const stNm = itemList[i].getElementsByTagName("stNm")[0]?.textContent;
@@ -205,7 +231,7 @@ setSelectedStopDirection(uniqueDirections.slice(0, 2).join(" / "));
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
   
       const itemList = xmlDoc.getElementsByTagName("itemList");
-      const parsedStops: { stId: string; stNm: string; arsId: string }[] = [];
+      const parsedStops: { stId: string; stNm: string; arsId: string; direction?: string }[] = [];
   
       for (let i = 0; i < itemList.length; i++) {
         const stNm = itemList[i].getElementsByTagName("stNm")[0]?.textContent;
@@ -213,15 +239,18 @@ setSelectedStopDirection(uniqueDirections.slice(0, 2).join(" / "));
         const arsId = itemList[i].getElementsByTagName("arsId")[0]?.textContent;
   
         if (stNm && stId && arsId) {
-          parsedStops.push({
-            stId,
-            stNm,
-            arsId,
-          });
+          const direction = itemList[i].getElementsByTagName("adirection")[0]?.textContent || "";
+
+parsedStops.push({
+  stId,
+  stNm,
+  arsId,
+  direction,
+})
         }
       }
   
-      const uniqueStopsMap = new Map<string, { stId: string; stNm: string; arsId: string }>();
+      const uniqueStopsMap = new Map<string, { stId: string; stNm: string; arsId: string; direction?: string }>();
   
       for (const stop of parsedStops) {
         const key = stop.arsId || stop.stId;
@@ -327,20 +356,42 @@ setSelectedStopDirection(uniqueDirections.slice(0, 2).join(" / "));
   정류장번호: {item.arsId}
 </div>
 
+
+
+{selectedStopId === item.arsId && selectedStopDirection && (
+  <div className="text-xs text-yellow-300">
+    방향: {selectedStopDirection}
+  </div>
+)}
+
 <div style={{ fontSize: "12px", color: "#666" }}>
   ID: {item.stId}
 </div>
           </div>
 
-          <button
-            onClick={() => {
-              setSelectedStopId(item.arsId);
-              handleFavorite(item.stNm, item.arsId);
-            }}
-            className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-sm"
-          >
-            저장
-          </button>
+          <div className="flex gap-2">
+  
+  {/* 1. 확인 버튼 */}
+  <button
+  onClick={() => setSelectedStopId(item.arsId)}
+  className={`px-2 py-1 rounded text-sm text-white ${
+    selectedStopId === item.arsId
+      ? "bg-gray-500"
+      : "bg-blue-600 hover:bg-blue-700"
+  }`}
+>
+  확인
+</button>
+
+  {/* 2. 저장 버튼 */}
+  <button
+    onClick={() => handleFavorite(item.stNm, item.arsId)}
+    className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-sm"
+  >
+    저장
+  </button>
+
+</div>
         </div>
       ))}
     </div>
@@ -432,25 +483,26 @@ setSelectedStopDirection(uniqueDirections.slice(0, 2).join(" / "));
                   <div className="font-medium text-white">
                   {arrival.routeName ?? "노선 없음"} → {arrival.direction || "방향정보 없음"}
 </div>
-                    <div className="text-sm text-gray-400">
-                      {arrival.routeTypeName ?? ""}
-                    </div>
-                  </div>
+{/* 
+<div className="text-sm text-gray-400">
+  {arrival.routeTypeName ?? ""}
+</div>
+*/}                  </div>
 
                   <div className="text-right">
                     <div className="text-blue-400 font-semibold">
-                      {arrival.predictTime1 ? `${arrival.predictTime1}분 후` : "곧 도착"}
+                    {formatArrival(arrival.predictTime1)}
                     </div>
                     <div className="text-sm text-gray-400">
-                      {arrival.locationNo1 ? `${arrival.locationNo1}정거장 전` : ""}
+                     
                     </div>
                   </div>
                 </div>
 
                 {(arrival.predictTime2 || arrival.locationNo2) && (
                   <div className="mt-2 pt-2 border-t border-zinc-700 text-sm text-gray-400">
-                    다음 차량: {arrival.predictTime2 ? `${arrival.predictTime2}분 후` : "-"}
-                    {arrival.locationNo2 ? ` · ${arrival.locationNo2}정거장 전` : ""}
+                    다음 차량: {formatArrival(arrival.predictTime2)}
+                   
                   </div>
                 )}
               </div>
