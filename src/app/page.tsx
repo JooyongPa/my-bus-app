@@ -27,27 +27,11 @@ export default function HomePage() {
   const [previewBuses, setPreviewBuses] = useState<Record<string, string[]>>({});
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
-  // 노선 상세 모달
-  const [selectedRoute, setSelectedRoute] = useState<{
-    routeId: string;
-    routeName: string;
-    direction: string;
-  } | null>(null);
-  const [routePositions, setRoutePositions] = useState<
-    { stationNm: string; stationSeq: number; isCurrentStop?: boolean }[]
-  >([]);
-  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
-
   type ArrivalItem = {
-    routeId?: string;
     routeName?: string;
-    routeTypeName?: string;
     predictTime1?: string | number;
     predictTime2?: string | number;
-    locationNo1?: string | number;
-    locationNo2?: string | number;
     direction?: string;
-    nextStation?: string;
   };
 
   const [arrivals, setArrivals] = useState<ArrivalItem[]>([]);
@@ -107,7 +91,6 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, [stopName]);
 
-  // 검색결과 카드 버스목록 미리보기
   const fetchPreviewBuses = async (arsId: string) => {
     if (previewStopId === arsId) {
       setPreviewStopId(null);
@@ -143,15 +126,10 @@ export default function HomePage() {
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
       const items = Array.from(xmlDoc.getElementsByTagName("itemList"));
       const parsed = items.map((item) => ({
-        routeId: item.getElementsByTagName("busRouteId")[0]?.textContent || "",
         routeName: item.getElementsByTagName("rtNm")[0]?.textContent || "",
-        routeTypeName: item.getElementsByTagName("routeType")[0]?.textContent || "",
         predictTime1: item.getElementsByTagName("arrmsg1")[0]?.textContent || "",
         predictTime2: item.getElementsByTagName("arrmsg2")[0]?.textContent || "",
-        locationNo1: item.getElementsByTagName("arrmsg1")[0]?.textContent || "",
-        locationNo2: item.getElementsByTagName("arrmsg2")[0]?.textContent || "",
         direction: item.getElementsByTagName("adirection")[0]?.textContent || "",
-        nextStation: item.getElementsByTagName("nxtStn")[0]?.textContent || "",
       }));
       const directions = parsed.map((item) => item.direction).filter((dir) => dir && dir.trim() !== "");
       const uniqueDirections = Array.from(new Set(directions));
@@ -169,31 +147,6 @@ export default function HomePage() {
     if (!selectedStopId) return;
     fetchArrivals(selectedStopId);
   }, [selectedStopId, fetchArrivals]);
-
-  const fetchRoutePositions = async (routeId: string, routeName: string, direction: string) => {
-    if (!routeId) return;
-    setSelectedRoute({ routeId, routeName, direction });
-    setIsLoadingRoute(true);
-    setRoutePositions([]);
-    try {
-      const res = await fetch(`/api/route?routeId=${routeId}`);
-      const xmlText = await res.text();
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-      const items = Array.from(xmlDoc.getElementsByTagName("itemList"));
-      const stations = items.map((item) => ({
-        stationNm: item.getElementsByTagName("stationNm")[0]?.textContent || "",
-        stationSeq: parseInt(item.getElementsByTagName("seq")[0]?.textContent || "0"),
-        isCurrentStop: item.getElementsByTagName("arsId")[0]?.textContent === selectedStopId,
-      }));
-      stations.sort((a, b) => a.stationSeq - b.stationSeq);
-      setRoutePositions(stations);
-    } catch (err) {
-      console.error("노선 조회 에러", err);
-    } finally {
-      setIsLoadingRoute(false);
-    }
-  };
 
   const handleFavorite = (name: string, id: string) => {
     const exists = favorites.some((favorite) => favorite.id === id);
@@ -315,7 +268,6 @@ export default function HomePage() {
                     <div key={item.arsId} className={`rounded mb-1 border ${
                       selectedStopId === item.arsId ? "border-blue-500" : "border-zinc-700"
                     }`}>
-                      {/* 카드 헤더 - 탭하면 버스목록 펼침 */}
                       <div
                         className={`flex items-center justify-between px-3 py-2 rounded-t cursor-pointer ${
                           selectedStopId === item.arsId ? "bg-blue-900" : "bg-zinc-800 hover:bg-zinc-700"
@@ -344,7 +296,6 @@ export default function HomePage() {
                         </button>
                       </div>
 
-                      {/* 버스목록 펼치기 */}
                       {previewStopId === item.arsId && (
                         <div className="bg-zinc-800 border-t border-zinc-700 px-3 py-2 rounded-b">
                           {previewLoading === item.arsId ? (
@@ -446,16 +397,10 @@ export default function HomePage() {
           ) : (
             <div className="space-y-2">
               {arrivals.map((arrival, index) => (
-                <div key={`${arrival.routeId ?? arrival.routeName ?? "route"}-${index}`}
-                  className="bg-zinc-800 rounded-lg p-3">
+                <div key={`${arrival.routeName}-${index}`} className="bg-zinc-800 rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <button
-                        onClick={() => fetchRoutePositions(arrival.routeId || "", arrival.routeName || "", arrival.direction || "")}
-                        className="font-medium text-white hover:text-blue-400 transition-colors text-left">
-                        <span className="underline decoration-dotted">{arrival.routeName ?? "노선 없음"}</span>
-                        <span className="text-xs ml-1 text-gray-400">노선보기</span>
-                      </button>
+                      <div className="font-medium text-white">{arrival.routeName ?? "노선 없음"}</div>
                       <div className="text-xs text-gray-400">→ {arrival.direction || "방향정보 없음"}</div>
                     </div>
                     <div className="text-right">
@@ -472,42 +417,6 @@ export default function HomePage() {
             </div>
           )}
         </div>
-
-        {/* 노선 상세 모달 */}
-        {selectedRoute && (
-          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-end justify-center z-50"
-            onClick={() => setSelectedRoute(null)}>
-            <div className="bg-zinc-900 w-full max-w-md rounded-t-2xl p-5 max-h-[75vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="text-xl font-bold text-white">{selectedRoute.routeName}번</div>
-                  <div className="text-sm text-yellow-300">→ {selectedRoute.direction} 방면</div>
-                </div>
-                <button onClick={() => setSelectedRoute(null)} className="text-gray-400 hover:text-white text-2xl">✕</button>
-              </div>
-              {isLoadingRoute ? (
-                <div className="text-gray-400 text-center py-8">노선 정보 불러오는 중...</div>
-              ) : routePositions.length === 0 ? (
-                <div className="text-gray-400 text-center py-8">노선 정보를 불러올 수 없습니다.</div>
-              ) : (
-                <div className="space-y-1">
-                  {routePositions.map((station, idx) => (
-                    <div key={idx}
-                      className={`flex items-center gap-3 px-3 py-2 rounded ${
-                        station.isCurrentStop ? "bg-blue-900 border border-blue-400" : "bg-zinc-800"
-                      }`}>
-                      <div className="text-xs text-gray-500 w-6 text-right">{station.stationSeq}</div>
-                      <div className={`text-sm ${station.isCurrentStop ? "text-blue-300 font-bold" : "text-white"}`}>
-                        {station.isCurrentStop ? "📍 " : ""}{station.stationNm}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );
