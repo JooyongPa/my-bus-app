@@ -400,7 +400,7 @@ export default function HomePage() {
                 <div key={`${arrival.routeName}-${index}`} className="bg-zinc-800 rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="font-medium text-white">{arrival.routeName ?? "노선 없음"}</div>
+                      <div className="font-medium text-white cursor-pointer hover:text-blue-400 transition-colors" onClick={() => window.open(`https://bus-route-app-ten.vercel.app/?route=${arrival.routeName}`, "_blank")}>{arrival.routeName ?? "노선 없음"} 🔗</div>
                       <div className="text-xs text-gray-400">→ {arrival.direction || "방향정보 없음"}</div>
                     </div>
                     <div className="text-right">
