@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Bus Stop",
   description: "Live departures and favorites for your stops",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
