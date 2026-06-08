@@ -305,7 +305,7 @@ export default function HomePage() {
                               <div className="text-xs text-gray-400 mb-2">이 정류장에 서는 버스</div>
                               <div className="flex flex-wrap gap-1 mb-3">
                                 {previewBuses[item.arsId].map((bus, idx) => (
-                                  <span key={idx} className="bg-blue-800 text-white text-xs px-2 py-0.5 rounded font-medium">
+                                  <span key={idx} onClick={() => window.open(`https://bus-route-app-ten.vercel.app/?route=${bus}`, "_blank")} className="bg-blue-800 hover:bg-blue-600 active:bg-blue-500 text-white text-xs px-2 py-0.5 rounded font-medium cursor-pointer">
                                     {bus}
                                   </span>
                                 ))}
