@@ -418,6 +418,17 @@ export default function HomePage() {
           )}
         </div>
       </div>
+      </div>
+
+      {/* 공공데이터 저작권 푸터 */}
+      <footer className="w-full text-center py-4 mt-4 border-t border-zinc-800 space-y-1">
+        <div className="text-xs text-gray-500">
+          🏛️ 공공데이터 활용 · 🗂️ 서울 열린데이터 광장 · ©서울특별시
+        </div>
+        <div className="text-xs text-gray-600">
+          본 서비스는 서울특별시 공공데이터를 활용하여 제공됩니다
+        </div>
+      </footer>
     </main>
   );
 }
