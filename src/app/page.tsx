@@ -209,7 +209,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white px-4">
+    <main className="min-h-screen bg-black text-white flex flex-col items-center px-4">
       <div className="w-full max-w-md space-y-6 py-6">
         <h1 className="text-2xl font-bold text-center">버스 정류장 검색</h1>
 
