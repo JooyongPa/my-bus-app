@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   description: "Live departures and favorites for your stops",
   icons: {
     icon: '/favicon.svg',
+    apple: '/favicon.svg',
   },
 };
 
