@@ -418,7 +418,6 @@ export default function HomePage() {
           )}
         </div>
       </div>
-      </div>
 
       {/* 공공데이터 저작권 푸터 */}
       <footer className="w-full text-center py-4 mt-4 border-t border-zinc-800 space-y-1">
